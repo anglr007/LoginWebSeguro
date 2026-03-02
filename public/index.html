@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureAuth — Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0e14;
+      --surface:  #111720;
+      --border:   #1e2d3d;
+      --accent:   #00d9a5;
+      --accent2:  #0099ff;
+      --danger:   #ff4d6d;
+      --warning:  #ffb830;
+      --text:     #c9d1d9;
+      --muted:    #4a5568;
+      --white:    #f0f6fc;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1.5rem;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(0,153,255,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(0,217,165,0.06) 0%, transparent 50%);
+    }
+
+    /* ── Grid scan lines ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.012) 2px,
+        rgba(255,255,255,0.012) 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,153,255,0.08), 0 24px 48px rgba(0,0,0,0.4);
+    }
+
+    /* ── Top accent bar ── */
+    .card-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,217,165,0.04);
+    }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    .card-header h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.2;
+    }
+
+    .card-header p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.85rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(0,217,165,0.04);
+    }
+
+    /* ── Forms ── */
+    .form-panel {
+      display: none;
+      padding: 2rem;
+      animation: fadeIn 0.25s ease;
+    }
+    .form-panel.active { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .field {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+    }
+
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.7rem 0.9rem;
+      color: var(--white);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(0,153,255,0.12);
+    }
+    input.error-input { border-color: var(--danger); }
+    input::placeholder { color: var(--muted); }
+
+    /* ── Password requirements ── */
+    .pwd-rules {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .rule {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .rule.ok { color: var(--accent); }
+    .rule-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .rule.ok .rule-dot { background: var(--accent); }
+
+    /* ── Alerts ── */
+    .alert {
+      display: none;
+      padding: 0.8rem 1rem;
+      border-radius: 3px;
+      font-size: 0.84rem;
+      margin-bottom: 1.25rem;
+      border-left: 3px solid;
+      animation: fadeIn 0.2s ease;
+    }
+    .alert.show { display: flex; align-items: flex-start; gap: 0.5rem; }
+    .alert.success { background: rgba(0,217,165,0.08); border-color: var(--accent); color: var(--accent); }
+    .alert.error   { background: rgba(255,77,109,0.08); border-color: var(--danger); color: var(--danger); }
+    .alert.info    { background: rgba(0,153,255,0.08);  border-color: var(--accent2); color: var(--accent2); }
+
+    .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Button ── */
+    .btn {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 3px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #00f5bc; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,217,165,0.3); }
+    .btn-primary:active { transform: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      font-size: 0.75rem;
+    }
+    .btn-danger:hover { background: rgba(255,77,109,0.1); }
+
+    /* ── Session panel ── */
+    #session-panel {
+      display: none;
+      padding: 2rem;
+      animation: fadeIn 0.3s ease;
+    }
+    #session-panel.active { display: block; }
+
+    .session-status {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: rgba(0,217,165,0.06);
+      border: 1px solid rgba(0,217,165,0.2);
+      border-radius: 3px;
+      margin-bottom: 1.5rem;
+    }
+
+    .status-dot {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,217,165,0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(0,217,165,0); }
+    }
+
+    .session-info { flex: 1; }
+    .session-info .label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .session-info .email-display {
+      font-size: 0.9rem;
+      color: var(--white);
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    .security-badges {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .badge {
+      padding: 0.6rem 0.8rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .badge strong { display: block; color: var(--accent2); font-size: 0.65rem; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+
+    /* ── Footer ── */
+    .card-footer {
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+    .card-footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- Header -->
+  <div class="card-header">
+    <div class="logo">// secure_auth_demo</div>
+    <h1>Autenticación Segura</h1>
+    <p>Demo de login con buenas prácticas de seguridad</p>
+  </div>
+
+  <!-- Session active panel -->
+  <div id="session-panel">
+    <div class="session-status">
+      <div class="status-dot"></div>
+      <div class="session-info">
+        <div class="label">Sesión activa</div>
+        <div class="email-display" id="session-email">usuario@ejemplo.com</div>
+      </div>
+    </div>
+
+    <div class="security-badges">
+      <div class="badge"><strong>TOKEN</strong>JWT — 1h</div>
+      <div class="badge"><strong>COOKIE</strong>HttpOnly</div>
+      <div class="badge"><strong>HASH</strong>bcrypt x12</div>
+      <div class="badge"><strong>SESIÓN</strong>Activa</div>
+    </div>
+
+    <button class="btn btn-danger" onclick="logout()">⬡ Cerrar sesión</button>
+  </div>
+
+  <!-- Auth tabs -->
+  <div id="auth-area">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login')">Iniciar sesión</button>
+      <button class="tab" onclick="switchTab('register')">Crear cuenta</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="form-panel active" id="tab-login">
+      <div class="alert" id="login-alert">
+        <span class="alert-icon"></span>
+        <span id="login-alert-msg"></span>
+      </div>
+
+      <div class="field">
+        <label for="login-email">Correo electrónico</label>
+        <input type="email" id="login-email" placeholder="ejemplo@correo.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password" />
+      </div>
+
+      <button class="btn btn-primary" id="btn-login" onclick="login()">→ Iniciar sesión</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="form-panel" id="tab-register">
+      <div class="alert" id="register-alert">
+        <span class="alert-icon"></span>
+        <span id="register-alert-msg"></span>
+      </div>
+
+      <div class="field">
+        <label for="reg-email">Correo electrónico</label>
+        <input type="email" id="reg-email" placeholder="ejemplo@correo.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="reg-password">Contraseña</label>
+        <input type="password" id="reg-password" placeholder="Mín. 8 caracteres" autocomplete="new-password"
+               oninput="checkPasswordRules(this.value)" />
+        <div class="pwd-rules">
+          <div class="rule" id="rule-length"><div class="rule-dot"></div>Al menos 8 caracteres</div>
+          <div class="rule" id="rule-number"><div class="rule-dot"></div>Al menos un número</div>
+          <div class="rule" id="rule-special"><div class="rule-dot"></div>Al menos un carácter especial (!@#$%...)</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="reg-confirm">Confirmar contraseña</label>
+        <input type="password" id="reg-confirm" placeholder="Repite tu contraseña" autocomplete="new-password" />
+      </div>
+
+      <button class="btn btn-primary" id="btn-register" onclick="register()">→ Crear cuenta</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="card-footer">
+    <span>DEMO</span>
+    <span>bcrypt · JWT · helmet · rate-limit · mongo-sanitize</span>
+  </div>
+
+</div>
+
+<script>
+  // ── Utilidades ────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+
+  function showAlert(panelId, type, message) {
+    const alert = $(panelId);
+    const icon = { success: '✓', error: '✕', info: 'ℹ' }[type] || '!';
+    alert.querySelector('.alert-icon').textContent = icon;
+    alert.querySelector(`[id$="-msg"]`).textContent = message;
+    alert.className = `alert show ${type}`;
+  }
+
+  function hideAlert(panelId) {
+    $(panelId).className = 'alert';
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = $(btnId);
+    btn.disabled = loading;
+    btn.textContent = loading ? '· · ·' : (btnId === 'btn-login' ? '→ Iniciar sesión' : '→ Crear cuenta');
+  }
+
+  function clearInputErrors() {
+    document.querySelectorAll('input').forEach(i => i.classList.remove('error-input'));
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
+    $('tab-login').classList.toggle('active', tab === 'login');
+    $('tab-register').classList.toggle('active', tab === 'register');
+    hideAlert('login-alert');
+    hideAlert('register-alert');
+    clearInputErrors();
+  }
+
+  // ── Validación de contraseña en tiempo real ───────────────────────────────
+  function checkPasswordRules(pwd) {
+    const toggle = (id, ok) => $(`rule-${id}`).classList.toggle('ok', ok);
+    toggle('length',  pwd.length >= 8);
+    toggle('number',  /\d/.test(pwd));
+    toggle('special', /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/.test(pwd));
+  }
+
+  // ── Validación client-side básica ─────────────────────────────────────────
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
+  // ── Login ─────────────────────────────────────────────────────────────────
+  async function login() {
+    clearInputErrors();
+    hideAlert('login-alert');
+
+    const email    = $('login-email').value.trim();
+    const password = $('login-password').value;
+
+    if (!email || !password) {
+      showAlert('login-alert', 'error', 'Por favor completa todos los campos.');
+      if (!email)    $('login-email').classList.add('error-input');
+      if (!password) $('login-password').classList.add('error-input');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      showAlert('login-alert', 'error', 'Ingresa un correo válido (ejemplo@dominio.com).');
+      $('login-email').classList.add('error-input');
+      return;
+    }
+
+    setLoading('btn-login', true);
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showSessionPanel(data.user.email);
+      } else {
+        showAlert('login-alert', 'error', data.message);
+        $('login-password').value = '';
+      }
+    } catch {
+      showAlert('login-alert', 'error', 'Error de red. Intenta de nuevo.');
+    } finally {
+      setLoading('btn-login', false);
+    }
+  }
+
+  // ── Register ──────────────────────────────────────────────────────────────
+  async function register() {
+    clearInputErrors();
+    hideAlert('register-alert');
+
+    const email    = $('reg-email').value.trim();
+    const password = $('reg-password').value;
+    const confirm  = $('reg-confirm').value;
+
+    if (!email || !password || !confirm) {
+      showAlert('register-alert', 'error', 'Por favor completa todos los campos.');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      showAlert('register-alert', 'error', 'El correo no tiene un formato válido (ejemplo@dominio.com).');
+      $('reg-email').classList.add('error-input');
+      return;
+    }
+
+    if (password !== confirm) {
+      showAlert('register-alert', 'error', 'Las contraseñas no coinciden.');
+      $('reg-confirm').classList.add('error-input');
+      return;
+    }
+
+    const hasLen     = password.length >= 8;
+    const hasNum     = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/.test(password);
+
+    if (!hasLen || !hasNum || !hasSpecial) {
+      showAlert('register-alert', 'error', 'La contraseña no cumple los requisitos mínimos de seguridad.');
+      $('reg-password').classList.add('error-input');
+      return;
+    }
+
+    setLoading('btn-register', true);
+    try {
+      const res  = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showSessionPanel(data.user.email);
+      } else {
+        showAlert('register-alert', 'error', data.message);
+      }
+    } catch {
+      showAlert('register-alert', 'error', 'Error de red. Intenta de nuevo.');
+    } finally {
+      setLoading('btn-register', false);
+    }
+  }
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } finally {
+      hideSessionPanel();
+    }
+  }
+
+  // ── Panel de sesión activa ────────────────────────────────────────────────
+  function showSessionPanel(email) {
+    $('session-email').textContent = email;
+    $('session-panel').style.display  = 'block';
+    $('session-panel').classList.add('active');
+    $('auth-area').style.display = 'none';
+    clearInputErrors();
+    $('login-password').value = '';
+    $('reg-password').value = '';
+    $('reg-confirm').value = '';
+    checkPasswordRules('');
+  }
+
+  function hideSessionPanel() {
+    $('session-panel').style.display  = 'none';
+    $('session-panel').classList.remove('active');
+    $('auth-area').style.display = 'block';
+    switchTab('login');
+  }
+
+  // ── Verificar sesión existente al cargar ──────────────────────────────────
+  (async () => {
+    try {
+      const res  = await fetch('/api/auth/me', { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) showSessionPanel(data.user.email);
+    } catch { /* sin sesión */ }
+  })();
+
+  // ── Enter key support ─────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if ($('tab-login').classList.contains('active'))    login();
+    if ($('tab-register').classList.contains('active')) register();
+  });
+</script>
+</body>
+</html>
